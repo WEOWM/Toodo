@@ -1,22 +1,62 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const SignIN = () => {
-    const navigate = useNavigate()
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      localStorage.clear(); // Clear localStorage if the token is not present
+      navigate("/signin"); // Redirect to the sign-in page
+    }
+  }, [navigate]);
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login form submitted:', formData);
-    // Add login API integration here
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:1000/auth/api/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.message || "Login failed");
+        toast.error( error || "Login failed")
+        console.log("error", error );
+        
+        localStorage.clear(); // Clear localStorage on failed login
+      } else {
+        const data = await response.json();
+        localStorage.setItem("token", data.token); // Save token to localStorage
+       
+        navigate("/todo"); // Redirect to protected route
+      }
+    } catch (err) {
+      console.error("Network Error:", err);
+      setError("Unable to connect to the server. Please try again later.");
+      localStorage.clear(); // Clear localStorage on network error
+    }
   };
 
   return (
@@ -61,19 +101,13 @@ const SignIN = () => {
             />
           </div>
           <button
-          onClick={()=>navigate('/todo')}
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             Sign In
           </button>
         </form>
-        <p className="text-sm text-center text-gray-600 mt-4">
-          Don't have an account?{' '}
-          <a href="#" className="text-blue-500 hover:underline">
-            Sign Up
-          </a>
-        </p>
+        {error && <p className="text-sm text-center text-red-500 mt-4">{error}</p>}
       </div>
     </div>
   );

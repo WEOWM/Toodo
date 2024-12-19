@@ -1,20 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const SignUp = () => {
+  const navigator = useNavigate();
+  
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
+    username: "",
+    email: "",
+    password: "",
   });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
-    const { name, value } = e.target;    
+    const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch("http://localhost:1000/auth/api/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.message || "Signup failed");
+        console.error("Error:", errorData);
+      } else {
+        setSuccess("Signup successful!");
+        console.log("Signup Successful");
+        setFormData({ username: "", email: "", password: "" });
+        setTimeout(() => {
+          navigator("/signin");
+        }, 3000);
+      }
+    } catch (err) {
+      console.error("Network Error:", err);
+      setError("Unable to connect to the server. Please try again later.");
+    }
   };
 
   return (
@@ -68,7 +100,7 @@ const SignUp = () => {
             <input
               type="password"
               id="password"
-              name="passwordd"
+              name="password"
               value={formData.password}
               onChange={handleChange}
               className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -82,10 +114,15 @@ const SignUp = () => {
             Sign Up
           </button>
         </form>
+        {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
+        {success && <p className="text-green-500 mt-4 text-center">{success}</p>}
         <p className="text-sm text-center text-gray-600 mt-4">
-          Already have an account?{' '}
-          <a href="/signin" className="text-blue-500 hover:underline">
-            Log in
+          Already have an account?{" "}
+          <a
+            href="/signin"
+            className="text-blue-500 hover:underline"
+          >
+            Sign In
           </a>
         </p>
       </div>
